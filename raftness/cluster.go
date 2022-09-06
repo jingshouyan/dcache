@@ -19,16 +19,17 @@ import (
 )
 
 type RaftNode struct {
-	Raft           *raft.Raft
+	raft           *raft.Raft
 	fsm            *fsm
 	transport      *raft.NetworkTransport
 	leaderNotifyCh chan bool
+	leader         bool
 	opts           *options.Options
 	*cache.CacheManager
 }
 
 func (r *RaftNode) Join(nodeName, peerAddress string) error {
-	af := r.Raft.AddVoter(raft.ServerID(nodeName), raft.ServerAddress(peerAddress), 0, 0)
+	af := r.raft.AddVoter(raft.ServerID(nodeName), raft.ServerAddress(peerAddress), 0, 0)
 	err := af.Error()
 	if err != nil {
 		r.opts.Log.Error("raft add voter failed", zap.Error(err))
@@ -43,7 +44,7 @@ func (r *RaftNode) Put(key, value string) error {
 		r.opts.Log.Error("json marshal error", zap.Error(err))
 		return err
 	}
-	af := r.Raft.Apply(eb, 5*time.Second)
+	af := r.raft.Apply(eb, 5*time.Second)
 	if err = af.Error(); err != nil {
 		r.opts.Log.Error("raft apply error", zap.Error(err))
 	}
@@ -108,17 +109,29 @@ func NewRaftNode(opts *options.Options, cm *cache.CacheManager) (*RaftNode, erro
 		}
 		rn.BootstrapCluster(configuration)
 	}
-	return &RaftNode{
-		Raft:           rn,
+	if opts.JoinAddr != "" {
+		JoinRaftCluster(opts)
+	}
+	raft := &RaftNode{
+		raft:           rn,
 		fsm:            fsm,
 		transport:      transport,
 		leaderNotifyCh: leaderNotifyCh,
 		opts:           opts,
 		CacheManager:   cm,
-	}, nil
+	}
+	go raft.monitor()
+	return raft, nil
 }
 
-func JoinRaftCluster(opts options.Options) error {
+func (r *RaftNode) monitor() {
+	for leader := range r.leaderNotifyCh {
+		r.leader = leader
+		r.opts.Log.Info("leader change", zap.Bool("leader", r.leader))
+	}
+}
+
+func JoinRaftCluster(opts *options.Options) error {
 	url := fmt.Sprintf("http://%s/v1/join?peerAddress=%s&node=%s", opts.JoinAddr, opts.RaftAddr, opts.RaftNode)
 	resp, err := http.Get(url)
 	if err != nil {
