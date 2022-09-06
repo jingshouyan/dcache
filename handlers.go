@@ -21,6 +21,7 @@ type handler struct {
 func (h *handler) register(r gin.IRouter) {
 	r.GET("/value", h.get)
 	r.POST("/value", h.put)
+	r.GET("join", h.join)
 }
 
 func (h *handler) get(c *gin.Context) {
@@ -38,5 +39,22 @@ func (h *handler) put(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 	} else {
 		c.String(http.StatusOK, "ok")
+	}
+}
+
+func (h *handler) join(c *gin.Context) {
+	peerAddress := c.Query("peerAddress")
+	nodeName := c.Query("node")
+	if peerAddress == "" {
+		c.String(http.StatusBadRequest, "invaild peerAdress")
+	} else if nodeName == "" {
+		c.String(http.StatusBadRequest, "invaild node")
+	} else {
+		err := h.raft.Join(nodeName, peerAddress)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "join failed")
+		} else {
+			c.String(http.StatusOK, "ok")
+		}
 	}
 }

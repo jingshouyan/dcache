@@ -23,13 +23,13 @@ type fsm struct {
 	log *zap.Logger
 }
 
-type EventData struct {
+type eventData struct {
 	Key   string
 	Value string
 }
 
 func (f *fsm) Apply(logEntry *raft.Log) interface{} {
-	d := EventData{}
+	d := eventData{}
 	if err := json.Unmarshal(logEntry.Data, &d); err != nil {
 		f.log.Error("failed unmarshal log", zap.ByteString("data", logEntry.Data))
 	}

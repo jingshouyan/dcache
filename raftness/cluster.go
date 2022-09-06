@@ -27,8 +27,17 @@ type RaftNode struct {
 	*cache.CacheManager
 }
 
+func (r *RaftNode) Join(nodeName, peerAddress string) error {
+	af := r.Raft.AddVoter(raft.ServerID(nodeName), raft.ServerAddress(peerAddress), 0, 0)
+	err := af.Error()
+	if err != nil {
+		r.opts.Log.Error("raft add voter failed", zap.Error(err))
+	}
+	return err
+}
+
 func (r *RaftNode) Put(key, value string) error {
-	event := EventData{Key: key, Value: value}
+	event := eventData{Key: key, Value: value}
 	eb, err := json.Marshal(event)
 	if err != nil {
 		r.opts.Log.Error("json marshal error", zap.Error(err))
@@ -59,7 +68,7 @@ func NewRaftNode(opts *options.Options, cm *cache.CacheManager) (*RaftNode, erro
 	}
 	logger := hclog.FromStandardLogger(zap.NewStdLog(opts.Log), logOpts)
 	raftConfig := raft.DefaultConfig()
-	raftConfig.LocalID = raft.ServerID(opts.RaftAddr)
+	raftConfig.LocalID = raft.ServerID(opts.RaftNode)
 	raftConfig.SnapshotInterval = opts.SnapshotInterval
 	raftConfig.SnapshotThreshold = opts.SnapshotThreshold
 	raftConfig.Logger = logger
@@ -110,7 +119,7 @@ func NewRaftNode(opts *options.Options, cm *cache.CacheManager) (*RaftNode, erro
 }
 
 func JoinRaftCluster(opts options.Options) error {
-	url := fmt.Sprintf("http://%s/v1/join?peerAddress=%s", opts.JoinAddr, opts.RaftAddr)
+	url := fmt.Sprintf("http://%s/v1/join?peerAddress=%s&node=%s", opts.JoinAddr, opts.RaftAddr, opts.RaftNode)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err

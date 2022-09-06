@@ -10,6 +10,7 @@ import (
 type Options struct {
 	HttpAddr          string
 	RaftAddr          string
+	RaftNode          string
 	DataDir           string
 	Bootsrap          bool
 	JoinAddr          string
@@ -46,11 +47,12 @@ func NewOptions() *Options {
 	opts := &Options{
 		HttpAddr:          httpAddr,
 		RaftAddr:          raftAddr,
+		RaftNode:          node,
 		DataDir:           dir,
 		Bootsrap:          bootstrap,
 		JoinAddr:          joinAddr,
 		SnapshotInterval:  30 * time.Second,
-		SnapshotThreshold: 5,
+		SnapshotThreshold: 2,
 		Log:               log,
 	}
 
