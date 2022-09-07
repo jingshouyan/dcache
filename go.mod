@@ -1,4 +1,4 @@
-module raft-go
+module dcache
 
 go 1.19
 

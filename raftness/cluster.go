@@ -1,6 +1,8 @@
 package raftness
 
 import (
+	"dcache/cache"
+	"dcache/options"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,8 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"raft-go/cache"
-	"raft-go/options"
 	"time"
 
 	"github.com/hashicorp/go-hclog"

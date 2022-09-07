@@ -1,7 +1,7 @@
 package raftness
 
 import (
-	"raft-go/cache"
+	"dcache/cache"
 
 	"github.com/hashicorp/raft"
 )
